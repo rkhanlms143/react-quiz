@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { QUESTIONS } from "./questions";
 
 const QuestionComponent = () => {
@@ -6,21 +6,43 @@ const QuestionComponent = () => {
   const [answers, setAnswers] = useState<boolean[]>([]);
   const [score, setScore] = useState<number>(0);
   const [averageScore, setAverageScore] = useState<number>(0);
+  const STORAGE_KEY = "questionnaireData";
+
+  useEffect(() => {
+    const storedData = localStorage.getItem(STORAGE_KEY);
+    if (storedData) {
+      const { answers, averageScore, currentQuestionIndex } =
+        JSON.parse(storedData);
+      setAnswers(answers);
+      setAverageScore(averageScore);
+      setCurrentQuestionIndex(currentQuestionIndex);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (answers.length > 0) {
+      const numYesAnswers = answers.filter((a) => a).length;
+      const newScore = (numYesAnswers / answers.length) * 100;
+      setScore(newScore);
+
+      const totalScore = answers.reduce((acc, cur) => acc + (cur ? 100 : 0), 0);
+      const newAverageScore = totalScore / answers.length;
+      setAverageScore(newAverageScore);
+
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          answers,
+          averageScore: newAverageScore,
+          currentQuestionIndex,
+        })
+      );
+    }
+  }, [answers, currentQuestionIndex]);
 
   const handleAnswer = (answer: boolean) => {
     const newAnswers = [...answers, answer];
     setAnswers(newAnswers);
-    const numYesAnswers = newAnswers.filter((a) => a).length;
-    const newScore = (numYesAnswers / newAnswers.length) * 100;
-    setScore(newScore);
-
-    const totalScore = newAnswers.reduce(
-      (acc, cur) => acc + (cur ? 100 : 0),
-      0
-    );
-    const newAverageScore = totalScore / newAnswers.length;
-    setAverageScore(newAverageScore);
-
     setCurrentQuestionIndex(currentQuestionIndex + 1);
   };
 
@@ -29,6 +51,7 @@ const QuestionComponent = () => {
     setAnswers([]);
     setScore(0);
     setAverageScore(0);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   return (
